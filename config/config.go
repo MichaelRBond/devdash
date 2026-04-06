@@ -1,0 +1,132 @@
+package config
+
+import (
+	"errors"
+	"fmt"
+	"os"
+	"time"
+
+	"github.com/BurntSushi/toml"
+)
+
+type Config struct {
+	General  GeneralConfig  `toml:"general"`
+	GitHub   GitHubConfig   `toml:"github"`
+	Linear   LinearConfig   `toml:"linear"`
+	Calendar CalendarConfig `toml:"calendar"`
+	Claude   ClaudeConfig   `toml:"claude"`
+}
+
+type GeneralConfig struct {
+	RefreshInterval duration `toml:"refresh_interval"`
+	Theme           string   `toml:"theme"`
+	Layout          string   `toml:"layout"`
+}
+
+type GitHubConfig struct {
+	Enabled         bool     `toml:"enabled"`
+	TokenEnv        string   `toml:"token_env"`
+	Orgs            []string `toml:"orgs"`
+	Repos           []string `toml:"repos"`
+	ReviewTeamSlugs []string `toml:"review_team_slugs"`
+}
+
+type LinearConfig struct {
+	Enabled          bool     `toml:"enabled"`
+	TokenEnv         string   `toml:"token_env"`
+	TeamKeys         []string `toml:"team_keys"`
+	StatesUpNext     []string `toml:"states_up_next"`
+	StatesInProgress []string `toml:"states_in_progress"`
+	StatesInReview   []string `toml:"states_in_review"`
+}
+
+type CalendarConfig struct {
+	Enabled      bool     `toml:"enabled"`
+	Provider     string   `toml:"provider"`
+	CalendarIDs  []string `toml:"calendar_ids"`
+	DaysAhead    int      `toml:"days_ahead"`
+	ShowDeclined bool     `toml:"show_declined"`
+}
+
+type ClaudeConfig struct {
+	Enabled    bool   `toml:"enabled"`
+	Plan       string `toml:"plan"`
+	DataSource string `toml:"data_source"`
+	TokenLimit int64  `toml:"token_limit"` // optional: tokens per 5h window
+}
+
+// duration wraps time.Duration for TOML string parsing (e.g. "5m").
+type duration time.Duration
+
+func (d *duration) UnmarshalText(text []byte) error {
+	parsed, err := time.ParseDuration(string(text))
+	if err != nil {
+		return fmt.Errorf("invalid duration %q: %w", string(text), err)
+	}
+	*d = duration(parsed)
+	return nil
+}
+
+func Defaults() Config {
+	return Config{
+		General: GeneralConfig{
+			RefreshInterval: duration(5 * time.Minute),
+			Theme:           "dark",
+			Layout:          "default",
+		},
+		GitHub: GitHubConfig{
+			Enabled:  true,
+			TokenEnv: "GITHUB_TOKEN",
+		},
+		Linear: LinearConfig{
+			Enabled:          true,
+			TokenEnv:         "LINEAR_API_KEY",
+			StatesUpNext:     []string{"Up Next", "Todo", "Ready"},
+			StatesInProgress: []string{"In Progress"},
+			StatesInReview:   []string{"In Review", "PR Review"},
+		},
+		Calendar: CalendarConfig{
+			Enabled:     true,
+			Provider:    "google",
+			CalendarIDs: []string{"primary"},
+			DaysAhead:   3,
+		},
+		Claude: ClaudeConfig{
+			Enabled:    true,
+			Plan:       "pro",
+			DataSource: "cli",
+		},
+	}
+}
+
+// Load reads configuration from the given TOML file path.
+// If the file does not exist, it returns defaults.
+// If the file exists but is invalid, it returns an error.
+func Load(path string) (Config, error) {
+	cfg := Defaults()
+
+	_, err := os.Stat(path)
+	if errors.Is(err, os.ErrNotExist) {
+		return cfg, nil
+	}
+
+	if _, err := toml.DecodeFile(path, &cfg); err != nil {
+		return Config{}, fmt.Errorf("parsing config %s: %w", path, err)
+	}
+
+	return cfg, nil
+}
+
+// ConfigDir returns the XDG-compliant config directory for devdash.
+func ConfigDir() string {
+	if xdg := os.Getenv("XDG_CONFIG_HOME"); xdg != "" {
+		return xdg + "/devdash"
+	}
+	home, _ := os.UserHomeDir()
+	return home + "/.config/devdash"
+}
+
+// DefaultConfigPath returns the default path to the config file.
+func DefaultConfigPath() string {
+	return ConfigDir() + "/config.toml"
+}
