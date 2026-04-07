@@ -30,13 +30,14 @@ type ghPRNode struct {
 	Repository struct {
 		NameWithOwner string `json:"nameWithOwner"`
 	} `json:"repository"`
-	Title     string                 `json:"title"`
-	Number    int                    `json:"number"`
-	Author    struct{ Login string } `json:"author"`
-	URL       string                 `json:"url"`
-	CreatedAt time.Time              `json:"createdAt"`
-	UpdatedAt time.Time              `json:"updatedAt"`
-	Comments  struct {
+	Title          string                 `json:"title"`
+	Number         int                    `json:"number"`
+	Author         struct{ Login string } `json:"author"`
+	URL            string                 `json:"url"`
+	CreatedAt      time.Time              `json:"createdAt"`
+	UpdatedAt      time.Time              `json:"updatedAt"`
+	ReviewDecision string                 `json:"reviewDecision"`
+	Comments       struct {
 		TotalCount int `json:"totalCount"`
 	} `json:"comments"`
 	Commits struct {
@@ -86,6 +87,18 @@ func (n ghPRNode) toPR() types.PR {
 		UpdatedAt:    n.UpdatedAt,
 		CommentCount: n.Comments.TotalCount,
 		CIStatus:     ci,
+		ReviewStatus: mapReviewDecision(n.ReviewDecision),
+	}
+}
+
+func mapReviewDecision(decision string) types.ReviewStatus {
+	switch decision {
+	case "APPROVED":
+		return types.ReviewApproved
+	case "CHANGES_REQUESTED":
+		return types.ReviewChanges
+	default:
+		return types.ReviewPending
 	}
 }
 
@@ -113,6 +126,8 @@ const prQuery = `query($reviewQuery: String!, $authorQuery: String!) {
         url
         createdAt
         updatedAt
+        reviewDecision
+        comments { totalCount }
       }
     }
   }
@@ -126,6 +141,7 @@ const prQuery = `query($reviewQuery: String!, $authorQuery: String!) {
         url
         createdAt
         updatedAt
+        reviewDecision
         comments { totalCount }
         commits(last: 1) {
           nodes {

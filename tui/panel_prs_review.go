@@ -83,10 +83,12 @@ func (p PanelPRsReview) View() string {
 		var lines []string
 		for i, pr := range p.items {
 			age := styledAge(p.styles, pr.CreatedAt)
-			line := fmt.Sprintf("%s #%d %s  %s  %s",
+			review := reviewStatusIcon(p.styles, pr.ReviewStatus)
+			line := fmt.Sprintf("%s %s #%d %s  %s  %s",
+				review,
 				p.styles.Muted.Render(repoName(pr.Repo)),
 				pr.Number,
-				truncate(pr.Title, 40),
+				truncate(pr.Title, 38),
 				p.styles.Accent.Render(pr.Author),
 				age,
 			)
@@ -135,6 +137,17 @@ func scrollView(lines []string, selected, viewportHeight int) string {
 	}
 
 	return strings.Join(lines[start:end], "\n")
+}
+
+func reviewStatusIcon(styles Styles, status types.ReviewStatus) string {
+	switch status {
+	case types.ReviewApproved:
+		return styles.Success.Render("✔")
+	case types.ReviewChanges:
+		return styles.Danger.Render("⊘")
+	default:
+		return styles.Muted.Render("○")
+	}
 }
 
 // Shared helpers used by multiple panels.

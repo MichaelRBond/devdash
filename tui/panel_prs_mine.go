@@ -79,16 +79,18 @@ func (p PanelPRsMine) View() string {
 		var lines []string
 		for i, pr := range p.items {
 			ci := ciStatusIcon(p.styles, pr.CIStatus)
+			review := reviewStatusIcon(p.styles, pr.ReviewStatus)
 			age := styledAge(p.styles, pr.CreatedAt)
 			comments := ""
 			if pr.CommentCount > 0 {
 				comments = fmt.Sprintf("  %d comments", pr.CommentCount)
 			}
-			line := fmt.Sprintf("%s %s #%d %s  %s%s",
+			line := fmt.Sprintf("%s%s %s #%d %s  %s%s",
 				ci,
+				review,
 				p.styles.Muted.Render(repoName(pr.Repo)),
 				pr.Number,
-				truncate(pr.Title, 35),
+				truncate(pr.Title, 33),
 				age,
 				p.styles.Muted.Render(comments),
 			)
