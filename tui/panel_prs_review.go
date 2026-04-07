@@ -142,11 +142,11 @@ func scrollView(lines []string, selected, viewportHeight int) string {
 func reviewStatusIcon(styles Styles, status types.ReviewStatus) string {
 	switch status {
 	case types.ReviewApproved:
-		return styles.Success.Render("✔")
+		return styles.Success.Render("A")
 	case types.ReviewChanges:
-		return styles.Danger.Render("⊘")
+		return styles.Danger.Render("X")
 	default:
-		return styles.Muted.Render("○")
+		return styles.Muted.Render("-")
 	}
 }
 
