@@ -21,8 +21,8 @@ type GeneralConfig struct {
 	RefreshInterval duration `toml:"refresh_interval"`
 	Theme           string   `toml:"theme"`
 	Layout          string   `toml:"layout"`
-	OpenCommand     string   `toml:"open_command"` // e.g. "open -na 'Arc' --args --new-window"
 }
+
 
 type GitHubConfig struct {
 	Enabled         bool     `toml:"enabled"`
@@ -30,6 +30,7 @@ type GitHubConfig struct {
 	Orgs            []string `toml:"orgs"`
 	Repos           []string `toml:"repos"`
 	ReviewTeamSlugs []string `toml:"review_team_slugs"`
+	OpenCommand     string   `toml:"open_command"`
 }
 
 type LinearConfig struct {
@@ -39,6 +40,7 @@ type LinearConfig struct {
 	StatesUpNext     []string `toml:"states_up_next"`
 	StatesInProgress []string `toml:"states_in_progress"`
 	StatesInReview   []string `toml:"states_in_review"`
+	OpenCommand      string   `toml:"open_command"`
 }
 
 type CalendarConfig struct {
@@ -47,6 +49,7 @@ type CalendarConfig struct {
 	CalendarIDs  []string `toml:"calendar_ids"`
 	DaysAhead    int      `toml:"days_ahead"`
 	ShowDeclined bool     `toml:"show_declined"`
+	OpenCommand  string   `toml:"open_command"`
 }
 
 type ClaudeConfig struct {

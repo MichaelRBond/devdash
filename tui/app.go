@@ -67,15 +67,22 @@ type App struct {
 	initialLoad    bool           // suppress notifications on first fetch
 }
 
+// OpenCommands holds per-panel open command overrides.
+type OpenCommands struct {
+	GitHub   string
+	Linear   string
+	Calendar string
+}
+
 // NewApp creates the root application model.
-func NewApp(styles Styles, refreshInterval time.Duration, ghProvider *providers.GitHubProvider, linProvider *providers.LinearProvider, claudeProvider *providers.ClaudeProvider, calProvider *providers.CalendarProvider) App {
+func NewApp(styles Styles, refreshInterval time.Duration, ghProvider *providers.GitHubProvider, linProvider *providers.LinearProvider, claudeProvider *providers.ClaudeProvider, calProvider *providers.CalendarProvider, openCmds OpenCommands) App {
 	s := spinner.New()
 	s.Spinner = spinner.Dot
 
-	calendar := NewPanelCalendar(styles)
-	prsReview := NewPanelPRsReview(styles)
-	prsMine := NewPanelPRsMine(styles)
-	linear := NewPanelLinear(styles)
+	calendar := NewPanelCalendar(styles, openCmds.Calendar)
+	prsReview := NewPanelPRsReview(styles, openCmds.GitHub)
+	prsMine := NewPanelPRsMine(styles, openCmds.GitHub)
+	linear := NewPanelLinear(styles, openCmds.Linear)
 	claude := NewPanelClaude(styles)
 
 	// If providers are nil, mark panels as not loading.

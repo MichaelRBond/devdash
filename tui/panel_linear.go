@@ -25,19 +25,20 @@ var visibleStateGroups = map[string]bool{
 
 // PanelLinear displays Linear tasks grouped by workflow state in columns.
 type PanelLinear struct {
-	items    []types.Task // all fetched tasks
-	visible  []types.Task // only tasks with a visible state group
-	loading  bool
-	err      error
-	focused  bool
-	selected int
-	width    int
-	height   int
-	styles   Styles
+	items       []types.Task // all fetched tasks
+	visible     []types.Task // only tasks with a visible state group
+	loading     bool
+	err         error
+	focused     bool
+	selected    int
+	width       int
+	height      int
+	styles      Styles
+	openCommand string
 }
 
-func NewPanelLinear(styles Styles) PanelLinear {
-	return PanelLinear{loading: true, styles: styles}
+func NewPanelLinear(styles Styles, openCommand string) PanelLinear {
+	return PanelLinear{loading: true, styles: styles, openCommand: openCommand}
 }
 
 func (p PanelLinear) Update(msg tea.Msg) (PanelLinear, tea.Cmd) {
@@ -65,7 +66,7 @@ func (p PanelLinear) Update(msg tea.Msg) (PanelLinear, tea.Cmd) {
 			}
 		case "enter":
 			if len(p.visible) > 0 && p.selected < len(p.visible) {
-				openURL(p.visible[p.selected].URL)
+				openURLWith(p.visible[p.selected].URL, p.openCommand)
 			}
 		}
 	}

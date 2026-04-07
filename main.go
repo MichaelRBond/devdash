@@ -42,8 +42,10 @@ func main() {
 	theme := tui.ThemeFromName(cfg.General.Theme)
 	styles := tui.NewStyles(theme)
 
-	if cfg.General.OpenCommand != "" {
-		tui.SetOpenCommand(cfg.General.OpenCommand)
+	openCmds := tui.OpenCommands{
+		GitHub:   cfg.GitHub.OpenCommand,
+		Linear:   cfg.Linear.OpenCommand,
+		Calendar: cfg.Calendar.OpenCommand,
 	}
 
 	var ghProvider *providers.GitHubProvider
@@ -81,7 +83,7 @@ func main() {
 		}
 	}
 
-	app := tui.NewApp(styles, time.Duration(cfg.General.RefreshInterval), ghProvider, linProvider, claudeProvider, calProvider)
+	app := tui.NewApp(styles, time.Duration(cfg.General.RefreshInterval), ghProvider, linProvider, claudeProvider, calProvider, openCmds)
 
 	p := tea.NewProgram(app, tea.WithAltScreen(), tea.WithMouseCellMotion())
 	if _, err := p.Run(); err != nil {

@@ -16,18 +16,19 @@ type PRsMineMsg struct {
 
 // PanelPRsMine displays the user's open PRs.
 type PanelPRsMine struct {
-	items    []types.PR
-	loading  bool
-	err      error
-	focused  bool
-	selected int
-	width    int
-	height   int
-	styles   Styles
+	items       []types.PR
+	loading     bool
+	err         error
+	focused     bool
+	selected    int
+	width       int
+	height      int
+	styles      Styles
+	openCommand string
 }
 
-func NewPanelPRsMine(styles Styles) PanelPRsMine {
-	return PanelPRsMine{loading: true, styles: styles}
+func NewPanelPRsMine(styles Styles, openCommand string) PanelPRsMine {
+	return PanelPRsMine{loading: true, styles: styles, openCommand: openCommand}
 }
 
 func (p PanelPRsMine) Update(msg tea.Msg) (PanelPRsMine, tea.Cmd) {
@@ -54,7 +55,7 @@ func (p PanelPRsMine) Update(msg tea.Msg) (PanelPRsMine, tea.Cmd) {
 			}
 		case "enter":
 			if len(p.items) > 0 && p.selected < len(p.items) {
-				openURL(p.items[p.selected].URL)
+				openURLWith(p.items[p.selected].URL, p.openCommand)
 			}
 		}
 	}

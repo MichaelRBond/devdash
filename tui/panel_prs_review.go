@@ -20,18 +20,19 @@ type PRsReviewMsg struct {
 
 // PanelPRsReview displays PRs requesting the user's review.
 type PanelPRsReview struct {
-	items    []types.PR
-	loading  bool
-	err      error
-	focused  bool
-	selected int
-	width    int
-	height   int
-	styles   Styles
+	items       []types.PR
+	loading     bool
+	err         error
+	focused     bool
+	selected    int
+	width       int
+	height      int
+	styles      Styles
+	openCommand string
 }
 
-func NewPanelPRsReview(styles Styles) PanelPRsReview {
-	return PanelPRsReview{loading: true, styles: styles}
+func NewPanelPRsReview(styles Styles, openCommand string) PanelPRsReview {
+	return PanelPRsReview{loading: true, styles: styles, openCommand: openCommand}
 }
 
 func (p PanelPRsReview) Update(msg tea.Msg) (PanelPRsReview, tea.Cmd) {
@@ -58,7 +59,7 @@ func (p PanelPRsReview) Update(msg tea.Msg) (PanelPRsReview, tea.Cmd) {
 			}
 		case "enter":
 			if len(p.items) > 0 && p.selected < len(p.items) {
-				openURL(p.items[p.selected].URL)
+				openURLWith(p.items[p.selected].URL, p.openCommand)
 			}
 		}
 	}
@@ -194,19 +195,13 @@ func truncate(s string, maxLen int) string {
 	return s[:maxLen-3] + "..."
 }
 
-// openCommand is the custom command for opening URLs, set from config.
-var openCommand string
-
-// SetOpenCommand sets the custom open command from config.
-func SetOpenCommand(cmd string) {
-	openCommand = cmd
+func openURL(url string) {
+	openURLWith(url, "")
 }
 
-func openURL(url string) {
-	if openCommand != "" {
-		// Split command and append URL as final arg.
-		// e.g. "open -na 'Arc' --args --new-window" + url
-		cmd := exec.Command("sh", "-c", openCommand+" "+shellQuote(url))
+func openURLWith(url, customCmd string) {
+	if customCmd != "" {
+		cmd := exec.Command("sh", "-c", customCmd+" "+shellQuote(url))
 		_ = cmd.Start()
 		return
 	}

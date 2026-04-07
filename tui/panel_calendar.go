@@ -16,17 +16,18 @@ type CalendarEventsMsg struct {
 
 type PanelCalendar struct {
 	items    []types.Event
-	loading  bool
-	err      error
-	focused  bool
-	selected int
-	width    int
-	height   int
-	styles   Styles
+	loading     bool
+	err         error
+	focused     bool
+	selected    int
+	width       int
+	height      int
+	styles      Styles
+	openCommand string
 }
 
-func NewPanelCalendar(styles Styles) PanelCalendar {
-	return PanelCalendar{loading: true, styles: styles}
+func NewPanelCalendar(styles Styles, openCommand string) PanelCalendar {
+	return PanelCalendar{loading: true, styles: styles, openCommand: openCommand}
 }
 
 func (p PanelCalendar) Update(msg tea.Msg) (PanelCalendar, tea.Cmd) {
@@ -60,7 +61,7 @@ func (p PanelCalendar) Update(msg tea.Msg) (PanelCalendar, tea.Cmd) {
 					url = event.URL
 				}
 				if url != "" {
-					openURL(url)
+					openURLWith(url, p.openCommand)
 				}
 			}
 		}
