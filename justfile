@@ -27,6 +27,11 @@ build-all:
     GOOS=darwin GOARCH=amd64 go build -ldflags "-s -w" -o bin/devdash-darwin-amd64 .
     GOOS=darwin GOARCH=arm64 go build -ldflags "-s -w" -o bin/devdash-darwin-arm64 .
 
+# Build and install to ~/bin
+install: build
+    mkdir -p ~/bin
+    cp bin/devdash ~/bin/devdash
+
 # Clean build artifacts
 clean:
     rm -rf bin/ tmp/
