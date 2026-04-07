@@ -510,7 +510,7 @@ func (a *App) checkNewEvents(events []types.Event) {
 // playNotificationSound plays a short alert sound.
 func playNotificationSound() {
 	if runtime.GOOS == "darwin" {
-		cmd := exec.Command("afplay", "/System/Library/Sounds/Glass.aiff")
+		cmd := exec.Command("afplay", "/System/Library/Sounds/Hero.aiff")
 		_ = cmd.Start()
 		return
 	}
