@@ -79,7 +79,7 @@ func main() {
 
 	app := tui.NewApp(styles, time.Duration(cfg.General.RefreshInterval), ghProvider, linProvider, claudeProvider, calProvider)
 
-	p := tea.NewProgram(app, tea.WithAltScreen())
+	p := tea.NewProgram(app, tea.WithAltScreen(), tea.WithMouseCellMotion())
 	if _, err := p.Run(); err != nil {
 		fmt.Fprintf(os.Stderr, "error: %v\n", err)
 		os.Exit(1)

@@ -157,6 +157,15 @@ func (a App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		a.updatePanelSizes()
 		return a, nil
 
+	case tea.MouseMsg:
+		if msg.Action == tea.MouseActionPress && msg.Button == tea.MouseButtonLeft {
+			if panel := a.panelAtPosition(msg.X, msg.Y); panel >= 0 {
+				a.focused = panel
+				a.updatePanelFocus()
+			}
+		}
+		return a, nil
+
 	case CalendarEventsMsg:
 		if msg.Err == nil {
 			a.checkNewEvents(msg.Items)
@@ -354,6 +363,35 @@ func (a *App) updatePanelSizes() {
 	a.prsReview.SetSize(halfWidth, midHeight)
 	a.prsMine.SetSize(fullWidth-halfWidth, midHeight)
 	a.linear.SetSize(fullWidth, botHeight)
+}
+
+// panelAtPosition returns which panel index a screen coordinate falls in, or -1.
+func (a App) panelAtPosition(x, y int) int {
+	halfWidth := a.width / 2
+	availHeight := a.height - 1
+	topHeight := availHeight / 3
+	if topHeight < 14 {
+		topHeight = 14
+	}
+	remaining := availHeight - topHeight
+	midHeight := remaining / 2
+
+	// Top row: y < topHeight
+	if y < topHeight {
+		if x < halfWidth {
+			return panelCalendar
+		}
+		return panelClaude
+	}
+	// Middle row: y < topHeight + midHeight
+	if y < topHeight+midHeight {
+		if x < halfWidth {
+			return panelPRsReview
+		}
+		return panelPRsMine
+	}
+	// Bottom row
+	return panelLinear
 }
 
 func (a App) refreshAllCmd() []tea.Cmd {
