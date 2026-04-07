@@ -42,6 +42,10 @@ func main() {
 	theme := tui.ThemeFromName(cfg.General.Theme)
 	styles := tui.NewStyles(theme)
 
+	if cfg.General.OpenCommand != "" {
+		tui.SetOpenCommand(cfg.General.OpenCommand)
+	}
+
 	var ghProvider *providers.GitHubProvider
 	if cfg.GitHub.Enabled {
 		gp, err := providers.NewGitHubProvider(cfg.GitHub)

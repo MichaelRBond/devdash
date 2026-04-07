@@ -194,7 +194,22 @@ func truncate(s string, maxLen int) string {
 	return s[:maxLen-3] + "..."
 }
 
+// openCommand is the custom command for opening URLs, set from config.
+var openCommand string
+
+// SetOpenCommand sets the custom open command from config.
+func SetOpenCommand(cmd string) {
+	openCommand = cmd
+}
+
 func openURL(url string) {
+	if openCommand != "" {
+		// Split command and append URL as final arg.
+		// e.g. "open -na 'Arc' --args --new-window" + url
+		cmd := exec.Command("sh", "-c", openCommand+" "+shellQuote(url))
+		_ = cmd.Start()
+		return
+	}
 	var cmd *exec.Cmd
 	switch runtime.GOOS {
 	case "darwin":
@@ -205,6 +220,10 @@ func openURL(url string) {
 		return
 	}
 	_ = cmd.Start()
+}
+
+func shellQuote(s string) string {
+	return "'" + strings.ReplaceAll(s, "'", "'\\''") + "'"
 }
 
 func ciStatusIcon(styles Styles, status types.CIStatus) string {

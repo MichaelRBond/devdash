@@ -21,6 +21,7 @@ type GeneralConfig struct {
 	RefreshInterval duration `toml:"refresh_interval"`
 	Theme           string   `toml:"theme"`
 	Layout          string   `toml:"layout"`
+	OpenCommand     string   `toml:"open_command"` // e.g. "open -na 'Arc' --args --new-window"
 }
 
 type GitHubConfig struct {
