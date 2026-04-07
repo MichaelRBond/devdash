@@ -218,8 +218,8 @@ func (p *GitHubProvider) FetchAll(ctx context.Context) ([]types.PR, []types.PR, 
 		orgFilter += fmt.Sprintf(" repo:%s", repo)
 	}
 
-	reviewQuery := fmt.Sprintf("is:pr is:open review-requested:%s%s", p.username, orgFilter)
-	authorQuery := fmt.Sprintf("is:pr is:open author:%s%s", p.username, orgFilter)
+	reviewQuery := fmt.Sprintf("is:pr is:open draft:false review-requested:%s%s", p.username, orgFilter)
+	authorQuery := fmt.Sprintf("is:pr is:open draft:false author:%s%s", p.username, orgFilter)
 
 	gqlResp, err := p.executeQuery(ctx, reviewQuery, authorQuery)
 	if err != nil {
@@ -231,7 +231,7 @@ func (p *GitHubProvider) FetchAll(ctx context.Context) ([]types.PR, []types.PR, 
 	// Also fetch team review requests and merge (deduplicated).
 	for _, slug := range p.teamSlugs {
 		for _, org := range p.orgs {
-			teamQuery := fmt.Sprintf("is:pr is:open team-review-requested:%s/%s%s", org, slug, orgFilter)
+			teamQuery := fmt.Sprintf("is:pr is:open draft:false team-review-requested:%s/%s%s", org, slug, orgFilter)
 			teamResp, err := p.executeQuery(ctx, teamQuery, "")
 			if err != nil {
 				continue
