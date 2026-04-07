@@ -62,7 +62,7 @@ type App struct {
 	panelNames []string
 
 	// Notification tracking — stores keys of known items to detect new ones.
-	knownReviewPRs map[int]bool  // PR number → seen
+	knownReviewPRs map[string]bool // "repo#number" → seen
 	knownEvents    map[string]bool // "startTime|title" → seen
 	initialLoad    bool           // suppress notifications on first fetch
 }
@@ -119,7 +119,7 @@ func NewApp(styles Styles, refreshInterval time.Duration, ghProvider *providers.
 			"My PRs",
 			"Linear Tasks",
 		},
-		knownReviewPRs: make(map[int]bool),
+		knownReviewPRs: make(map[string]bool),
 		knownEvents:    make(map[string]bool),
 		initialLoad:    true,
 	}
@@ -472,22 +472,31 @@ func fetchClaudeCmd(provider *providers.ClaudeProvider) tea.Cmd {
 	}
 }
 
-// checkNewReviewPRs compares incoming PRs against known ones and plays a sound if new ones appear.
+// checkNewReviewPRs compares incoming PRs against the previous set and plays a sound for truly new ones.
 func (a *App) checkNewReviewPRs(prs []types.PR) {
-	hasNew := false
+	newSet := make(map[string]bool)
 	for _, pr := range prs {
-		if !a.knownReviewPRs[pr.Number] {
-			if !a.initialLoad {
+		key := fmt.Sprintf("%s#%d", pr.Repo, pr.Number)
+		newSet[key] = true
+	}
+
+	hasNew := false
+	if !a.initialLoad {
+		for key := range newSet {
+			if !a.knownReviewPRs[key] {
 				hasNew = true
+				break
 			}
-			a.knownReviewPRs[pr.Number] = true
 		}
 	}
+
+	// Replace the known set with the current set.
+	a.knownReviewPRs = newSet
+	a.initialLoad = false
+
 	if hasNew {
 		playNotificationSound()
 	}
-	// Mark initial load complete after first successful fetch.
-	a.initialLoad = false
 }
 
 // checkNewEvents compares incoming events against known ones and plays a sound if new ones appear.
