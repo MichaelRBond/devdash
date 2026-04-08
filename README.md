@@ -36,8 +36,10 @@ just build
 Set a [classic personal access token](https://github.com/settings/tokens/new) with `repo` and `read:org` scopes:
 
 ```bash
-export GITHUB_TOKEN=ghp_...
+export DEVDASH_GITHUB_TOKEN=ghp_...
 ```
+
+> Uses `DEVDASH_GITHUB_TOKEN` instead of `GITHUB_TOKEN` to avoid conflicts with the `gh` CLI.
 
 > Fine-grained tokens do not work with the GraphQL search API for private repos.
 
@@ -105,7 +107,7 @@ theme = "dark"              # "dark" | "light"
 
 [github]
 enabled = true
-token_env = "GITHUB_TOKEN"
+token_env = "DEVDASH_GITHUB_TOKEN"
 orgs = ["your-org"]         # filter by org (empty = all)
 repos = []                  # filter by repo (empty = all in org)
 

@@ -80,7 +80,7 @@ func Defaults() Config {
 		},
 		GitHub: GitHubConfig{
 			Enabled:  true,
-			TokenEnv: "GITHUB_TOKEN",
+			TokenEnv: "DEVDASH_GITHUB_TOKEN",
 		},
 		Linear: LinearConfig{
 			Enabled:          true,

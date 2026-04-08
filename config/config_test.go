@@ -19,8 +19,8 @@ func TestDefaults(t *testing.T) {
 	if !cfg.GitHub.Enabled {
 		t.Error("expected github enabled by default")
 	}
-	if cfg.GitHub.TokenEnv != "GITHUB_TOKEN" {
-		t.Errorf("expected token env GITHUB_TOKEN, got %s", cfg.GitHub.TokenEnv)
+	if cfg.GitHub.TokenEnv != "DEVDASH_GITHUB_TOKEN" {
+		t.Errorf("expected token env DEVDASH_GITHUB_TOKEN, got %s", cfg.GitHub.TokenEnv)
 	}
 	if !cfg.Linear.Enabled {
 		t.Error("expected linear enabled by default")
