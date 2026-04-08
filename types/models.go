@@ -18,6 +18,7 @@ type PR struct {
 	CIStatus     CIStatus
 	ReviewStatus ReviewStatus
 	TeamReview   bool // true if assigned via team, false if directly assigned
+	Branch       string
 }
 
 type CIStatus string

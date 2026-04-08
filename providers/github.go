@@ -37,6 +37,7 @@ type ghPRNode struct {
 	CreatedAt      time.Time              `json:"createdAt"`
 	UpdatedAt      time.Time              `json:"updatedAt"`
 	ReviewDecision string                 `json:"reviewDecision"`
+	HeadRefName    string                 `json:"headRefName"`
 	Comments       struct {
 		TotalCount int `json:"totalCount"`
 	} `json:"comments"`
@@ -88,6 +89,7 @@ func (n ghPRNode) toPR() types.PR {
 		CommentCount: n.Comments.TotalCount,
 		CIStatus:     ci,
 		ReviewStatus: mapReviewDecision(n.ReviewDecision),
+		Branch:       n.HeadRefName,
 	}
 }
 
@@ -127,6 +129,7 @@ const prQuery = `query($reviewQuery: String!, $authorQuery: String!) {
         createdAt
         updatedAt
         reviewDecision
+        headRefName
         comments { totalCount }
       }
     }
@@ -142,6 +145,7 @@ const prQuery = `query($reviewQuery: String!, $authorQuery: String!) {
         createdAt
         updatedAt
         reviewDecision
+        headRefName
         comments { totalCount }
         commits(last: 1) {
           nodes {

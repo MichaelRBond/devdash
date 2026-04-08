@@ -16,6 +16,7 @@ var helpEntries = []helpEntry{
 	{"Tab / Shift+Tab", "Cycle focus between panels"},
 	{"j / k / ↑ / ↓", "Scroll within focused panel"},
 	{"Enter", "Open selected item in browser"},
+	{"s", "Open skill menu for focused panel"},
 	{"r", "Refresh all panels"},
 	{"R", "Refresh focused panel only"},
 	{"1-5", "Jump to panel by number"},

@@ -112,6 +112,27 @@ func (p PanelPRsReview) View() string {
 func (p *PanelPRsReview) SetSize(w, h int) { p.width = w; p.height = h }
 func (p *PanelPRsReview) SetFocused(f bool) { p.focused = f }
 
+// SelectedMetadata returns JSON-serializable metadata for the selected PR.
+func (p *PanelPRsReview) SelectedMetadata() map[string]any {
+	if len(p.items) == 0 || p.selected >= len(p.items) {
+		return nil
+	}
+	pr := p.items[p.selected]
+	return map[string]any{
+		"panel":         "github",
+		"repo":          pr.Repo,
+		"repo_name":     repoName(pr.Repo),
+		"pr_number":     pr.Number,
+		"pr_title":      pr.Title,
+		"pr_url":        pr.URL,
+		"author":        pr.Author,
+		"branch":        pr.Branch,
+		"created_at":    pr.CreatedAt.Format(time.RFC3339),
+		"review_status": string(pr.ReviewStatus),
+		"ci_status":     string(pr.CIStatus),
+	}
+}
+
 // scrollView returns a slice of lines visible in the viewport, keeping
 // the selected index visible. Returns the visible lines joined with newlines.
 // viewportHeight is the number of lines that fit in the panel content area.

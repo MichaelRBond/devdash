@@ -3,6 +3,7 @@ package tui
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
@@ -182,3 +183,21 @@ func filterVisible(tasks []types.Task) []types.Task {
 
 func (p *PanelLinear) SetSize(w, h int) { p.width = w; p.height = h }
 func (p *PanelLinear) SetFocused(f bool) { p.focused = f }
+
+// SelectedMetadata returns JSON-serializable metadata for the selected task.
+func (p *PanelLinear) SelectedMetadata() map[string]any {
+	if len(p.visible) == 0 || p.selected >= len(p.visible) {
+		return nil
+	}
+	task := p.visible[p.selected]
+	return map[string]any{
+		"panel":      "linear",
+		"identifier": task.Identifier,
+		"title":      task.Title,
+		"url":        task.URL,
+		"team":       task.Team,
+		"state":      task.State,
+		"labels":     task.Labels,
+		"created_at": task.CreatedAt.Format(time.RFC3339),
+	}
+}

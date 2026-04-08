@@ -148,3 +148,22 @@ func eventStatusIcon(styles Styles, status types.EventStatus) string {
 
 func (p *PanelCalendar) SetSize(w, h int) { p.width = w; p.height = h }
 func (p *PanelCalendar) SetFocused(f bool) { p.focused = f }
+
+// SelectedMetadata returns JSON-serializable metadata for the selected event.
+func (p *PanelCalendar) SelectedMetadata() map[string]any {
+	todayItems := p.todayEvents()
+	if len(todayItems) == 0 || p.selected >= len(todayItems) {
+		return nil
+	}
+	event := todayItems[p.selected]
+	return map[string]any{
+		"panel":       "calendar",
+		"title":       event.Title,
+		"start_time":  event.StartTime.Format(time.RFC3339),
+		"end_time":    event.EndTime.Format(time.RFC3339),
+		"status":      string(event.Status),
+		"location":    event.Location,
+		"meeting_url": event.MeetingURL,
+		"url":         event.URL,
+	}
+}

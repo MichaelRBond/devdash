@@ -65,6 +65,9 @@ type App struct {
 	knownReviewPRs map[string]bool // "repo#number" → seen
 	knownEvents    map[string]bool // "startTime|title" → seen
 	initialLoad    bool           // suppress notifications on first fetch
+
+	// Skill menu overlay.
+	skillMenu SkillMenu
 }
 
 // OpenCommands holds per-panel open command overrides.
@@ -129,6 +132,7 @@ func NewApp(styles Styles, refreshInterval time.Duration, ghProvider *providers.
 		knownReviewPRs: make(map[string]bool),
 		knownEvents:    make(map[string]bool),
 		initialLoad:    true,
+		skillMenu:      NewSkillMenu(styles),
 	}
 }
 
@@ -209,6 +213,18 @@ func (a App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return a, nil
 		}
 
+		// Skill menu captures all keys when visible.
+		if a.skillMenu.IsVisible() {
+			skill, _ := a.skillMenu.HandleKey(msg.String())
+			if skill != nil {
+				metadata := a.selectedMetadata()
+				if metadata != nil {
+					RunSkill(*skill, metadata)
+				}
+			}
+			return a, nil
+		}
+
 		switch msg.String() {
 		case "q", "ctrl+c":
 			return a, tea.Quit
@@ -244,6 +260,12 @@ func (a App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			cmd := a.refreshFocusedCmd()
 			if cmd != nil {
 				return a, cmd
+			}
+		case "s":
+			skills := DiscoverSkills(a.focused)
+			metadata := a.selectedMetadata()
+			if metadata != nil && len(skills) > 0 {
+				a.skillMenu.Show(skills)
 			}
 		default:
 			// Forward key to focused panel.
@@ -287,6 +309,10 @@ func (a App) View() string {
 
 	if a.showHelp {
 		return a.renderHelp()
+	}
+
+	if a.skillMenu.IsVisible() {
+		return a.skillMenu.Render(a.width, a.height)
 	}
 
 	return a.renderLayout()
@@ -337,6 +363,22 @@ func (a App) renderLayout() string {
 
 func (a App) renderHelp() string {
 	return RenderHelp(a.styles, a.width, a.height)
+}
+
+// selectedMetadata returns metadata from the currently focused panel's selected item.
+func (a *App) selectedMetadata() map[string]any {
+	switch a.focused {
+	case panelCalendar:
+		return a.calendar.SelectedMetadata()
+	case panelPRsReview:
+		return a.prsReview.SelectedMetadata()
+	case panelPRsMine:
+		return a.prsMine.SelectedMetadata()
+	case panelLinear:
+		return a.linear.SelectedMetadata()
+	default:
+		return nil
+	}
 }
 
 func (a App) tickCmd() tea.Cmd {

@@ -2,6 +2,7 @@ package tui
 
 import (
 	"fmt"
+	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
 
@@ -112,3 +113,24 @@ func (p PanelPRsMine) View() string {
 
 func (p *PanelPRsMine) SetSize(w, h int) { p.width = w; p.height = h }
 func (p *PanelPRsMine) SetFocused(f bool) { p.focused = f }
+
+// SelectedMetadata returns JSON-serializable metadata for the selected PR.
+func (p *PanelPRsMine) SelectedMetadata() map[string]any {
+	if len(p.items) == 0 || p.selected >= len(p.items) {
+		return nil
+	}
+	pr := p.items[p.selected]
+	return map[string]any{
+		"panel":         "github",
+		"repo":          pr.Repo,
+		"repo_name":     repoName(pr.Repo),
+		"pr_number":     pr.Number,
+		"pr_title":      pr.Title,
+		"pr_url":        pr.URL,
+		"author":        pr.Author,
+		"branch":        pr.Branch,
+		"created_at":    pr.CreatedAt.Format(time.RFC3339),
+		"review_status": string(pr.ReviewStatus),
+		"ci_status":     string(pr.CIStatus),
+	}
+}
