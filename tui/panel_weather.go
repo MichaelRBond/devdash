@@ -152,7 +152,7 @@ func (p PanelWeather) renderWeather() string {
 }
 
 func weatherIconStyled(styles Styles, code int) string {
-	icon := weatherIconChar(code)
+	icon := weatherIconChar(code) + " "
 	switch {
 	case code == 0:
 		return styles.Warning.Render(icon)
