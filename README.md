@@ -72,27 +72,16 @@ devdash auth google
 
 This opens your browser for authorization and saves the refresh token to `~/.config/devdash/google-token.json`.
 
-### Claude Code Usage
+### Weather
 
-Displays token usage, cost estimates, burn rate, and predictions by reading session data from `~/.claude/projects/`. All usage metrics are **approximate** — they are derived from local session files and may not exactly match Anthropic's server-side accounting.
-
-To enable token exhaustion predictions ("Runs out: 6:54 PM"), set your `token_limit`. Anthropic does not publish exact token limits per plan — they vary dynamically. To find yours, install the [Claude Code Usage Monitor](https://github.com/Maciek-roboblog/Claude-Code-Usage-Monitor):
-
-```bash
-pip install claude-code-usage-monitor
-claude-monitor
-```
-
-Look for the "Token Usage" line (e.g., `13,957 / 105,260`) — the second number is your current limit. This limit can change over time as Anthropic adjusts capacity.
+Displays an ASCII clock and 3-day weather forecast from [Open-Meteo](https://open-meteo.com/) (free, no API key needed).
 
 ```toml
-[claude]
+[weather]
 enabled = true
-plan = "pro"              # "pro" | "max5" | "max20" | "api"
-token_limit = 105260      # tokens per 5h window (from claude-monitor)
+location = "Austin, TX"
+units = "fahrenheit"    # "fahrenheit" | "celsius"
 ```
-
-> **Note:** Cost estimates use published per-model pricing (Opus $15/$75, Sonnet $3/$15, Haiku $0.25/$1.25 per million tokens). Burn rate and predictions are based on your average consumption rate in the current 5-hour rolling window and will fluctuate as usage patterns change.
 
 ## Configuration
 
@@ -125,10 +114,10 @@ calendar_ids = ["primary"]
 days_ahead = 3
 show_declined = false
 
-[claude]
+[weather]
 enabled = true
-plan = "pro"
-data_source = "cli"
+location = "Austin, TX"
+units = "fahrenheit"
 ```
 
 ## Keybindings
