@@ -34,11 +34,11 @@ func TestDefaults(t *testing.T) {
 	if cfg.Calendar.DaysAhead != 3 {
 		t.Errorf("expected days ahead 3, got %d", cfg.Calendar.DaysAhead)
 	}
-	if !cfg.Claude.Enabled {
-		t.Error("expected claude enabled by default")
+	if !cfg.Weather.Enabled {
+		t.Error("expected weather enabled by default")
 	}
-	if cfg.Claude.Plan != "pro" {
-		t.Errorf("expected plan pro, got %s", cfg.Claude.Plan)
+	if cfg.Weather.Units != "fahrenheit" {
+		t.Errorf("expected units fahrenheit, got %s", cfg.Weather.Units)
 	}
 }
 
@@ -64,10 +64,10 @@ enabled = true
 days_ahead = 7
 calendar_ids = ["primary", "work@example.com"]
 
-[claude]
+[weather]
 enabled = true
-plan = "max5"
-data_source = "cli"
+location = "Austin, TX"
+units = "celsius"
 `
 	if err := os.WriteFile(path, []byte(tomlContent), 0644); err != nil {
 		t.Fatal(err)
@@ -96,8 +96,11 @@ data_source = "cli"
 	if cfg.Calendar.DaysAhead != 7 {
 		t.Errorf("expected days ahead 7, got %d", cfg.Calendar.DaysAhead)
 	}
-	if cfg.Claude.Plan != "max5" {
-		t.Errorf("expected plan max5, got %s", cfg.Claude.Plan)
+	if cfg.Weather.Location != "Austin, TX" {
+		t.Errorf("expected location Austin, TX, got %s", cfg.Weather.Location)
+	}
+	if cfg.Weather.Units != "celsius" {
+		t.Errorf("expected units celsius, got %s", cfg.Weather.Units)
 	}
 }
 

@@ -14,7 +14,7 @@ type Config struct {
 	GitHub   GitHubConfig   `toml:"github"`
 	Linear   LinearConfig   `toml:"linear"`
 	Calendar CalendarConfig `toml:"calendar"`
-	Claude   ClaudeConfig   `toml:"claude"`
+	Weather  WeatherConfig  `toml:"weather"`
 }
 
 type GeneralConfig struct {
@@ -52,11 +52,10 @@ type CalendarConfig struct {
 	OpenCommand  string   `toml:"open_command"`
 }
 
-type ClaudeConfig struct {
-	Enabled    bool   `toml:"enabled"`
-	Plan       string `toml:"plan"`
-	DataSource string `toml:"data_source"`
-	TokenLimit int64  `toml:"token_limit"` // optional: tokens per 5h window
+type WeatherConfig struct {
+	Enabled  bool   `toml:"enabled"`
+	Location string `toml:"location"`
+	Units    string `toml:"units"` // "fahrenheit" | "celsius"
 }
 
 // duration wraps time.Duration for TOML string parsing (e.g. "5m").
@@ -95,10 +94,10 @@ func Defaults() Config {
 			CalendarIDs: []string{"primary"},
 			DaysAhead:   3,
 		},
-		Claude: ClaudeConfig{
-			Enabled:    true,
-			Plan:       "pro",
-			DataSource: "cli",
+		Weather: WeatherConfig{
+			Enabled:  true,
+			Location: "",
+			Units:    "fahrenheit",
 		},
 	}
 }

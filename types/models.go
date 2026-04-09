@@ -71,36 +71,21 @@ const (
 	EventDeclined  EventStatus = "declined"
 )
 
-// Usage represents Claude Code usage data.
-type Usage struct {
-	MessagesUsed    int
-	MessageLimit    int
-	TokensIn        int64
-	TokensOut       int64
-	CacheCreateIn   int64
-	CacheReadIn     int64
-	TotalTokens     int64
-	CostUSD         float64
-	ResetAt         time.Time
-	Model           string
-	Plan            string
-	Available       bool
-	ModelStats      []ModelUsage
-	BurnRate        float64   // tokens per minute
-	TokenLimit      int64     // plan token limit per window
-	WindowStart     time.Time // earliest usage in the rolling window
-	ActiveMinutes   float64   // minutes of active usage in window
+// Weather holds current conditions and forecast.
+type Weather struct {
+	CurrentTemp float64
+	CurrentCode int
+	CurrentDesc string
+	Forecast    []DayForecast
+	Available   bool
 }
 
-// ModelUsage holds per-model token and cost breakdown.
-type ModelUsage struct {
-	Model        string
-	InputTokens  int64
-	OutputTokens int64
-	CacheCreate  int64
-	CacheRead    int64
-	TotalTokens  int64
-	CostUSD      float64
+// DayForecast holds one day's forecast data.
+type DayForecast struct {
+	Date string
+	High float64
+	Low  float64
+	Code int
 }
 
 // Provider is the interface all data sources implement.
