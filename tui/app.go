@@ -17,7 +17,7 @@ import (
 
 const (
 	panelCalendar  = 0
-	panelClaude    = 1
+	panelWeather   = 1
 	panelPRsReview = 2
 	panelPRsMine   = 3
 	panelLinear    = 4
@@ -50,12 +50,12 @@ type App struct {
 	prsReview PanelPRsReview
 	prsMine   PanelPRsMine
 	linear    PanelLinear
-	claude    PanelClaude
+	weather   PanelWeather
 
 	// Providers (nil if not configured)
 	githubProvider   *providers.GitHubProvider
 	linearProvider   *providers.LinearProvider
-	claudeProvider   *providers.ClaudeProvider
+	weatherProvider  *providers.WeatherProvider
 	calendarProvider *providers.CalendarProvider
 
 	// Panel names for status bar display.
@@ -78,7 +78,7 @@ type OpenCommands struct {
 }
 
 // NewApp creates the root application model.
-func NewApp(styles Styles, refreshInterval time.Duration, ghProvider *providers.GitHubProvider, linProvider *providers.LinearProvider, claudeProvider *providers.ClaudeProvider, calProvider *providers.CalendarProvider, openCmds OpenCommands) App {
+func NewApp(styles Styles, refreshInterval time.Duration, ghProvider *providers.GitHubProvider, linProvider *providers.LinearProvider, weatherProvider *providers.WeatherProvider, weatherUnit string, calProvider *providers.CalendarProvider, openCmds OpenCommands) App {
 	s := spinner.New()
 	s.Spinner = spinner.Dot
 
@@ -86,7 +86,7 @@ func NewApp(styles Styles, refreshInterval time.Duration, ghProvider *providers.
 	prsReview := NewPanelPRsReview(styles, openCmds.GitHub)
 	prsMine := NewPanelPRsMine(styles, openCmds.GitHub)
 	linear := NewPanelLinear(styles, openCmds.Linear)
-	claude := NewPanelClaude(styles)
+	weather := NewPanelWeather(styles, weatherUnit)
 
 	// If providers are nil, mark panels as not loading.
 	if calProvider == nil {
@@ -103,9 +103,9 @@ func NewApp(styles Styles, refreshInterval time.Duration, ghProvider *providers.
 		linear.loading = false
 		linear.err = fmt.Errorf("Linear not configured")
 	}
-	if claudeProvider == nil {
-		claude.loading = false
-		claude.usage = types.Usage{Available: false}
+	if weatherProvider == nil {
+		weather.loading = false
+		weather.weather = types.Weather{Available: false}
 	}
 
 	return App{
@@ -117,14 +117,14 @@ func NewApp(styles Styles, refreshInterval time.Duration, ghProvider *providers.
 		prsReview:        prsReview,
 		prsMine:          prsMine,
 		linear:           linear,
-		claude:           claude,
+		weather:          weather,
 		githubProvider:   ghProvider,
 		linearProvider:   linProvider,
-		claudeProvider:   claudeProvider,
+		weatherProvider:  weatherProvider,
 		calendarProvider: calProvider,
 		panelNames: []string{
 			"Today's Events",
-			"Claude Code",
+			"Clock & Weather",
 			"PRs to Review",
 			"My PRs",
 			"Linear Tasks",
@@ -151,9 +151,10 @@ func (a App) Init() tea.Cmd {
 	if a.linearProvider != nil {
 		cmds = append(cmds, fetchLinearCmd(a.linearProvider))
 	}
-	if a.claudeProvider != nil {
-		cmds = append(cmds, fetchClaudeCmd(a.claudeProvider))
+	if a.weatherProvider != nil {
+		cmds = append(cmds, fetchWeatherCmd(a.weatherProvider))
 	}
+	cmds = append(cmds, ClockTickCmd())
 
 	return tea.Batch(cmds...)
 }
@@ -199,10 +200,13 @@ func (a App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		a.linear, cmd = a.linear.Update(msg)
 		return a, cmd
 
-	case ClaudeUsageMsg:
+	case WeatherMsg:
 		var cmd tea.Cmd
-		a.claude, cmd = a.claude.Update(msg)
+		a.weather, cmd = a.weather.Update(msg)
 		return a, cmd
+
+	case clockTickMsg:
+		return a, ClockTickCmd()
 
 	case tea.KeyMsg:
 		// Help overlay captures all keys except ? and q.
@@ -238,7 +242,7 @@ func (a App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			a.focused = panelCalendar
 			a.updatePanelFocus()
 		case "2":
-			a.focused = panelClaude
+			a.focused = panelWeather
 			a.updatePanelFocus()
 		case "3":
 			a.focused = panelPRsReview
@@ -279,8 +283,8 @@ func (a App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				a.prsMine, cmd = a.prsMine.Update(msg)
 			case panelLinear:
 				a.linear, cmd = a.linear.Update(msg)
-			case panelClaude:
-				a.claude, cmd = a.claude.Update(msg)
+			case panelWeather:
+				a.weather, cmd = a.weather.Update(msg)
 			}
 			if cmd != nil {
 				return a, cmd
@@ -324,7 +328,7 @@ func (a App) renderLayout() string {
 	halfWidth := fullWidth / 2
 	// Reserve 1 line for status bar.
 	availHeight := a.height - 1
-	// Top row: calendar + claude side by side.
+	// Top row: calendar + weather side by side.
 	topHeight := availHeight / 3
 	if topHeight < 14 {
 		topHeight = 14
@@ -335,20 +339,20 @@ func (a App) renderLayout() string {
 
 	// Set sizes on all panels.
 	a.calendar.SetSize(halfWidth, topHeight)
-	a.claude.SetSize(fullWidth-halfWidth, topHeight)
+	a.weather.SetSize(fullWidth-halfWidth, topHeight)
 	a.prsReview.SetSize(halfWidth, midHeight)
 	a.prsMine.SetSize(fullWidth-halfWidth, midHeight)
 	a.linear.SetSize(fullWidth, botHeight)
 
 	// Update focus state.
 	a.calendar.SetFocused(a.focused == panelCalendar)
-	a.claude.SetFocused(a.focused == panelClaude)
+	a.weather.SetFocused(a.focused == panelWeather)
 	a.prsReview.SetFocused(a.focused == panelPRsReview)
 	a.prsMine.SetFocused(a.focused == panelPRsMine)
 	a.linear.SetFocused(a.focused == panelLinear)
 
 	// Render each panel.
-	top := lipgloss.JoinHorizontal(lipgloss.Top, a.calendar.View(), a.claude.View())
+	top := lipgloss.JoinHorizontal(lipgloss.Top, a.calendar.View(), a.weather.View())
 	mid := lipgloss.JoinHorizontal(lipgloss.Top, a.prsReview.View(), a.prsMine.View())
 	bot := a.linear.View()
 
@@ -392,7 +396,7 @@ func (a *App) updatePanelFocus() {
 	a.prsReview.SetFocused(a.focused == panelPRsReview)
 	a.prsMine.SetFocused(a.focused == panelPRsMine)
 	a.linear.SetFocused(a.focused == panelLinear)
-	a.claude.SetFocused(a.focused == panelClaude)
+	a.weather.SetFocused(a.focused == panelWeather)
 }
 
 func (a *App) updatePanelSizes() {
@@ -408,7 +412,7 @@ func (a *App) updatePanelSizes() {
 	botHeight := remaining - midHeight
 
 	a.calendar.SetSize(halfWidth, topHeight)
-	a.claude.SetSize(fullWidth-halfWidth, topHeight)
+	a.weather.SetSize(fullWidth-halfWidth, topHeight)
 	a.prsReview.SetSize(halfWidth, midHeight)
 	a.prsMine.SetSize(fullWidth-halfWidth, midHeight)
 	a.linear.SetSize(fullWidth, botHeight)
@@ -430,7 +434,7 @@ func (a App) panelAtPosition(x, y int) int {
 		if x < halfWidth {
 			return panelCalendar
 		}
-		return panelClaude
+		return panelWeather
 	}
 	// Middle row: y < topHeight + midHeight
 	if y < topHeight+midHeight {
@@ -454,8 +458,8 @@ func (a App) refreshAllCmd() []tea.Cmd {
 	if a.linearProvider != nil {
 		cmds = append(cmds, fetchLinearCmd(a.linearProvider))
 	}
-	if a.claudeProvider != nil {
-		cmds = append(cmds, fetchClaudeCmd(a.claudeProvider))
+	if a.weatherProvider != nil {
+		cmds = append(cmds, fetchWeatherCmd(a.weatherProvider))
 	}
 	return cmds
 }
@@ -474,9 +478,9 @@ func (a App) refreshFocusedCmd() tea.Cmd {
 		if a.linearProvider != nil {
 			return fetchLinearCmd(a.linearProvider)
 		}
-	case panelClaude:
-		if a.claudeProvider != nil {
-			return fetchClaudeCmd(a.claudeProvider)
+	case panelWeather:
+		if a.weatherProvider != nil {
+			return fetchWeatherCmd(a.weatherProvider)
 		}
 	}
 	return nil
@@ -509,15 +513,12 @@ func fetchLinearCmd(provider *providers.LinearProvider) tea.Cmd {
 	}
 }
 
-func fetchClaudeCmd(provider *providers.ClaudeProvider) tea.Cmd {
+func fetchWeatherCmd(provider *providers.WeatherProvider) tea.Cmd {
 	return func() tea.Msg {
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
-		items, err := provider.Fetch(ctx)
-		if err != nil || len(items) == 0 {
-			return ClaudeUsageMsg{Err: err}
-		}
-		return ClaudeUsageMsg{Usage: items[0]}
+		weather, err := provider.Fetch(ctx)
+		return WeatherMsg{Weather: weather, Err: err}
 	}
 }
 

@@ -68,9 +68,16 @@ func main() {
 		}
 	}
 
-	var claudeProvider *providers.ClaudeProvider
-	if cfg.Claude.Enabled {
-		claudeProvider = providers.NewClaudeProvider(cfg.Claude)
+	var weatherProvider *providers.WeatherProvider
+	var weatherUnit string
+	if cfg.Weather.Enabled && cfg.Weather.Location != "" {
+		wp, err := providers.NewWeatherProvider(cfg.Weather)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "weather: %v (panel disabled)\n", err)
+		} else {
+			weatherProvider = wp
+			weatherUnit = wp.UnitSymbol()
+		}
 	}
 
 	var calProvider *providers.CalendarProvider
@@ -83,7 +90,7 @@ func main() {
 		}
 	}
 
-	app := tui.NewApp(styles, time.Duration(cfg.General.RefreshInterval), ghProvider, linProvider, claudeProvider, calProvider, openCmds)
+	app := tui.NewApp(styles, time.Duration(cfg.General.RefreshInterval), ghProvider, linProvider, weatherProvider, weatherUnit, calProvider, openCmds)
 
 	p := tea.NewProgram(app, tea.WithAltScreen(), tea.WithMouseCellMotion())
 	if _, err := p.Run(); err != nil {
