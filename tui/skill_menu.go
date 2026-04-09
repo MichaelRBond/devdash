@@ -11,13 +11,14 @@ import (
 type SkillMenu struct {
 	skills   []Skill
 	selected int
+	floating bool // true = floating pane, false = new tab
 	visible  bool
 	styles   Styles
 }
 
 // NewSkillMenu creates a new skill menu (initially hidden).
 func NewSkillMenu(styles Styles) SkillMenu {
-	return SkillMenu{styles: styles}
+	return SkillMenu{styles: styles, floating: true}
 }
 
 // Show populates the menu with skills and makes it visible.
@@ -43,6 +44,11 @@ func (m *SkillMenu) IsVisible() bool {
 	return m.visible
 }
 
+// IsFloating returns whether skills will launch in a floating pane.
+func (m *SkillMenu) IsFloating() bool {
+	return m.floating
+}
+
 // Selected returns the currently highlighted skill, or nil if menu is hidden.
 func (m *SkillMenu) Selected() *Skill {
 	if !m.visible || len(m.skills) == 0 {
@@ -64,6 +70,9 @@ func (m *SkillMenu) HandleKey(key string) (*Skill, bool) {
 		if m.selected > 0 {
 			m.selected--
 		}
+		return nil, false
+	case "f":
+		m.floating = !m.floating
 		return nil, false
 	case "enter":
 		skill := m.Selected()
@@ -93,7 +102,15 @@ func (m *SkillMenu) Render(width, height int) string {
 		rows = append(rows, line)
 	}
 
-	content := title + "\n\n" + strings.Join(rows, "\n") + "\n\n" + m.styles.Muted.Render("Enter: run  |  Esc: cancel")
+	modeLabel := "floating"
+	if !m.floating {
+		modeLabel = "new tab"
+	}
+	mode := fmt.Sprintf("mode: %s", m.styles.Accent.Render(modeLabel))
+
+	footer := m.styles.Muted.Render("Enter: run  |  f: toggle mode  |  Esc: cancel") + "\n" + mode
+
+	content := title + "\n\n" + strings.Join(rows, "\n") + "\n\n" + footer
 
 	border := lipgloss.NewStyle().
 		Border(lipgloss.RoundedBorder()).

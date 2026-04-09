@@ -9,9 +9,9 @@ import (
 	"time"
 )
 
-// RunSkill writes metadata to a temp JSON file and launches claude in a new zellij tab.
-// For github and linear skills, it resolves the repo path and cds into it before running claude.
-func RunSkill(skill Skill, metadata map[string]any) error {
+// RunSkill writes metadata to a temp JSON file and launches claude in zellij.
+// If floating is true, opens in a floating pane; otherwise opens in a new tab.
+func RunSkill(skill Skill, metadata map[string]any, floating bool) error {
 	// Write metadata JSON to temp file.
 	filename := fmt.Sprintf("/tmp/devdash-skill-%d.json", time.Now().UnixNano())
 	data, err := json.MarshalIndent(metadata, "", "  ")
@@ -37,10 +37,17 @@ func RunSkill(skill Skill, metadata map[string]any) error {
 		claudeCmd = fmt.Sprintf("cd %s && %s", shellQuote(workDir), claudeCmd)
 	}
 
-	// Launch in a new zellij tab.
-	cmd := exec.Command("zellij", "action", "new-tab", "--", "sh", "-c", claudeCmd)
+	// Launch in zellij — floating pane or new tab.
+	var cmd *exec.Cmd
+	if floating {
+		cmd = exec.Command("zellij", "action", "new-pane", "--floating",
+			"--width", "90%", "--height", "90%",
+			"--", "sh", "-c", claudeCmd)
+	} else {
+		cmd = exec.Command("zellij", "action", "new-tab", "--", "sh", "-c", claudeCmd)
+	}
 	if err := cmd.Start(); err != nil {
-		return fmt.Errorf("launching zellij tab: %w", err)
+		return fmt.Errorf("launching zellij: %w", err)
 	}
 
 	return nil
