@@ -26,10 +26,24 @@ type PanelPRsMine struct {
 	height      int
 	styles      Styles
 	openCommand string
+	showDrafts  bool
 }
 
 func NewPanelPRsMine(styles Styles, openCommand string) PanelPRsMine {
 	return PanelPRsMine{loading: true, styles: styles, openCommand: openCommand}
+}
+
+func (p PanelPRsMine) visiblePRs() []types.PR {
+	if p.showDrafts {
+		return p.items
+	}
+	var result []types.PR
+	for _, pr := range p.items {
+		if !pr.IsDraft {
+			result = append(result, pr)
+		}
+	}
+	return result
 }
 
 func (p PanelPRsMine) Update(msg tea.Msg) (PanelPRsMine, tea.Cmd) {
@@ -38,16 +52,18 @@ func (p PanelPRsMine) Update(msg tea.Msg) (PanelPRsMine, tea.Cmd) {
 		p.loading = false
 		p.err = msg.Err
 		p.items = msg.Items
-		if p.selected >= len(p.items) && len(p.items) > 0 {
-			p.selected = len(p.items) - 1
+		visible := p.visiblePRs()
+		if p.selected >= len(visible) {
+			p.selected = max(0, len(visible)-1)
 		}
 	case tea.KeyMsg:
 		if !p.focused {
 			return p, nil
 		}
+		visible := p.visiblePRs()
 		switch msg.String() {
 		case "j", "down":
-			if p.selected < len(p.items)-1 {
+			if p.selected < len(visible)-1 {
 				p.selected++
 			}
 		case "k", "up":
@@ -55,8 +71,14 @@ func (p PanelPRsMine) Update(msg tea.Msg) (PanelPRsMine, tea.Cmd) {
 				p.selected--
 			}
 		case "enter":
-			if len(p.items) > 0 && p.selected < len(p.items) {
-				openURLWith(p.items[p.selected].URL, p.openCommand)
+			if len(visible) > 0 && p.selected < len(visible) {
+				openURLWith(visible[p.selected].URL, p.openCommand)
+			}
+		case "d":
+			p.showDrafts = !p.showDrafts
+			vis := p.visiblePRs()
+			if p.selected >= len(vis) {
+				p.selected = max(0, len(vis)-1)
 			}
 		}
 	}
@@ -64,10 +86,16 @@ func (p PanelPRsMine) Update(msg tea.Msg) (PanelPRsMine, tea.Cmd) {
 }
 
 func (p PanelPRsMine) View() string {
-	title := p.styles.Muted.Render("[4] ") + p.styles.PanelTitle.Render("My PRs")
+	draftLabel := ""
+	if p.showDrafts {
+		draftLabel = p.styles.Muted.Render("  [+drafts]")
+	}
+	title := p.styles.Muted.Render("[4] ") + p.styles.PanelTitle.Render("My PRs") + draftLabel
 	if p.focused {
 		title = "▶ " + title
 	}
+
+	visible := p.visiblePRs()
 
 	var content string
 	switch {
@@ -75,14 +103,18 @@ func (p PanelPRsMine) View() string {
 		content = p.styles.Muted.Render("Loading...")
 	case p.err != nil:
 		content = p.styles.Danger.Render("Error: " + p.err.Error())
-	case len(p.items) == 0:
+	case len(visible) == 0:
 		content = p.styles.Muted.Render("No open PRs")
 	default:
 		var lines []string
-		for i, pr := range p.items {
+		for i, pr := range visible {
 			ci := ciStatusIcon(p.styles, pr.CIStatus)
 			review := reviewStatusIcon(p.styles, pr.ReviewStatus)
 			age := styledAge(p.styles, pr.CreatedAt)
+			prTitle := truncate(pr.Title, 33)
+			if pr.IsDraft {
+				prTitle = draftStyle(p.styles).Render(prTitle)
+			}
 			comments := ""
 			if pr.CommentCount > 0 {
 				comments = fmt.Sprintf("  %d comments", pr.CommentCount)
@@ -92,7 +124,7 @@ func (p PanelPRsMine) View() string {
 				review,
 				p.styles.Muted.Render(repoName(pr.Repo)),
 				pr.Number,
-				truncate(pr.Title, 33),
+				prTitle,
 				age,
 				p.styles.Muted.Render(comments),
 			)
@@ -116,10 +148,11 @@ func (p *PanelPRsMine) SetFocused(f bool) { p.focused = f }
 
 // SelectedMetadata returns JSON-serializable metadata for the selected PR.
 func (p *PanelPRsMine) SelectedMetadata() map[string]any {
-	if len(p.items) == 0 || p.selected >= len(p.items) {
+	visible := p.visiblePRs()
+	if len(visible) == 0 || p.selected >= len(visible) {
 		return nil
 	}
-	pr := p.items[p.selected]
+	pr := visible[p.selected]
 	return map[string]any{
 		"panel":         "github",
 		"repo":          pr.Repo,

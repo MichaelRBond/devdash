@@ -8,6 +8,7 @@ import (
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
 
 	"github.com/MichaelRBond/devdash/types"
 )
@@ -29,10 +30,24 @@ type PanelPRsReview struct {
 	height      int
 	styles      Styles
 	openCommand string
+	showDrafts  bool
 }
 
 func NewPanelPRsReview(styles Styles, openCommand string) PanelPRsReview {
 	return PanelPRsReview{loading: true, styles: styles, openCommand: openCommand}
+}
+
+func (p PanelPRsReview) visiblePRs() []types.PR {
+	if p.showDrafts {
+		return p.items
+	}
+	var result []types.PR
+	for _, pr := range p.items {
+		if !pr.IsDraft {
+			result = append(result, pr)
+		}
+	}
+	return result
 }
 
 func (p PanelPRsReview) Update(msg tea.Msg) (PanelPRsReview, tea.Cmd) {
@@ -41,16 +56,18 @@ func (p PanelPRsReview) Update(msg tea.Msg) (PanelPRsReview, tea.Cmd) {
 		p.loading = false
 		p.err = msg.Err
 		p.items = msg.Items
-		if p.selected >= len(p.items) && len(p.items) > 0 {
-			p.selected = len(p.items) - 1
+		visible := p.visiblePRs()
+		if p.selected >= len(visible) {
+			p.selected = max(0, len(visible)-1)
 		}
 	case tea.KeyMsg:
 		if !p.focused {
 			return p, nil
 		}
+		visible := p.visiblePRs()
 		switch msg.String() {
 		case "j", "down":
-			if p.selected < len(p.items)-1 {
+			if p.selected < len(visible)-1 {
 				p.selected++
 			}
 		case "k", "up":
@@ -58,8 +75,14 @@ func (p PanelPRsReview) Update(msg tea.Msg) (PanelPRsReview, tea.Cmd) {
 				p.selected--
 			}
 		case "enter":
-			if len(p.items) > 0 && p.selected < len(p.items) {
-				openURLWith(p.items[p.selected].URL, p.openCommand)
+			if len(visible) > 0 && p.selected < len(visible) {
+				openURLWith(visible[p.selected].URL, p.openCommand)
+			}
+		case "d":
+			p.showDrafts = !p.showDrafts
+			vis := p.visiblePRs()
+			if p.selected >= len(vis) {
+				p.selected = max(0, len(vis)-1)
 			}
 		}
 	}
@@ -67,10 +90,16 @@ func (p PanelPRsReview) Update(msg tea.Msg) (PanelPRsReview, tea.Cmd) {
 }
 
 func (p PanelPRsReview) View() string {
-	title := p.styles.Muted.Render("[3] ") + p.styles.PanelTitle.Render("PRs to Review")
+	draftLabel := ""
+	if p.showDrafts {
+		draftLabel = p.styles.Muted.Render("  [+drafts]")
+	}
+	title := p.styles.Muted.Render("[3] ") + p.styles.PanelTitle.Render("PRs to Review") + draftLabel
 	if p.focused {
 		title = "▶ " + title
 	}
+
+	visible := p.visiblePRs()
 
 	var content string
 	switch {
@@ -78,18 +107,22 @@ func (p PanelPRsReview) View() string {
 		content = p.styles.Muted.Render("Loading...")
 	case p.err != nil:
 		content = p.styles.Danger.Render("Error: " + p.err.Error())
-	case len(p.items) == 0:
+	case len(visible) == 0:
 		content = p.styles.Muted.Render("No PRs to review")
 	default:
 		var lines []string
-		for i, pr := range p.items {
+		for i, pr := range visible {
 			age := styledAge(p.styles, pr.CreatedAt)
 			review := reviewStatusIcon(p.styles, pr.ReviewStatus)
+			prTitle := truncate(pr.Title, 38)
+			if pr.IsDraft {
+				prTitle = draftStyle(p.styles).Render(prTitle)
+			}
 			line := fmt.Sprintf("%s %s #%d %s  %s  %s",
 				review,
 				p.styles.Muted.Render(repoName(pr.Repo)),
 				pr.Number,
-				truncate(pr.Title, 38),
+				prTitle,
 				p.styles.Accent.Render(pr.Author),
 				age,
 			)
@@ -100,7 +133,6 @@ func (p PanelPRsReview) View() string {
 			}
 			lines = append(lines, line)
 		}
-		// viewport = panel inner height - border(2) - title(1) - blank(1) - padding(1)
 		viewport := p.height - 5
 		content = scrollView(lines, p.selected, viewport)
 	}
@@ -114,10 +146,11 @@ func (p *PanelPRsReview) SetFocused(f bool) { p.focused = f }
 
 // SelectedMetadata returns JSON-serializable metadata for the selected PR.
 func (p *PanelPRsReview) SelectedMetadata() map[string]any {
-	if len(p.items) == 0 || p.selected >= len(p.items) {
+	visible := p.visiblePRs()
+	if len(visible) == 0 || p.selected >= len(visible) {
 		return nil
 	}
-	pr := p.items[p.selected]
+	pr := visible[p.selected]
 	return map[string]any{
 		"panel":         "github",
 		"repo":          pr.Repo,
@@ -170,6 +203,11 @@ func reviewStatusIcon(styles Styles, status types.ReviewStatus) string {
 	default:
 		return styles.Muted.Render("-")
 	}
+}
+
+// draftStyle returns a dim yellow style for draft PR titles.
+func draftStyle(styles Styles) lipgloss.Style {
+	return lipgloss.NewStyle().Foreground(lipgloss.Color("#b8860b"))
 }
 
 // Shared helpers used by multiple panels.

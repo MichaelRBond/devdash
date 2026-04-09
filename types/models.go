@@ -17,8 +17,9 @@ type PR struct {
 	CommentCount int
 	CIStatus     CIStatus
 	ReviewStatus ReviewStatus
-	TeamReview   bool // true if assigned via team, false if directly assigned
+	TeamReview   bool
 	Branch       string
+	IsDraft      bool
 }
 
 type CIStatus string
