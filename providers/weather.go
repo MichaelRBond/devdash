@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"strings"
 	"time"
 
 	"github.com/MichaelRBond/devdash/config"
@@ -47,21 +48,25 @@ func NewWeatherProvider(cfg config.WeatherConfig) (*WeatherProvider, error) {
 
 	client := &http.Client{Timeout: 10 * time.Second}
 
-	geoURL := fmt.Sprintf("https://geocoding-api.open-meteo.com/v1/search?name=%s&count=1",
-		url.QueryEscape(cfg.Location))
-
-	resp, err := client.Get(geoURL)
+	// Try geocoding with full location string first, then just the city name.
+	// Open-Meteo doesn't handle "City, ST" well — strip the suffix as fallback.
+	geoResp, err := geocode(client, cfg.Location)
 	if err != nil {
-		return nil, fmt.Errorf("geocoding request: %w", err)
-	}
-	defer resp.Body.Close()
-
-	var geoResp geocodingResponse
-	if err := json.NewDecoder(resp.Body).Decode(&geoResp); err != nil {
-		return nil, fmt.Errorf("decoding geocoding response: %w", err)
+		return nil, err
 	}
 	if len(geoResp.Results) == 0 {
-		return nil, fmt.Errorf("location %q not found", cfg.Location)
+		// Try just the city part (before the first comma).
+		city := cfg.Location
+		if i := strings.Index(city, ","); i > 0 {
+			city = strings.TrimSpace(city[:i])
+		}
+		geoResp, err = geocode(client, city)
+		if err != nil {
+			return nil, err
+		}
+		if len(geoResp.Results) == 0 {
+			return nil, fmt.Errorf("location %q not found", cfg.Location)
+		}
 	}
 
 	units := cfg.Units
@@ -130,6 +135,23 @@ func (p *WeatherProvider) Fetch(ctx context.Context) (types.Weather, error) {
 	}
 
 	return weather, nil
+}
+
+func geocode(client *http.Client, location string) (*geocodingResponse, error) {
+	geoURL := fmt.Sprintf("https://geocoding-api.open-meteo.com/v1/search?name=%s&count=1",
+		url.QueryEscape(location))
+
+	resp, err := client.Get(geoURL)
+	if err != nil {
+		return nil, fmt.Errorf("geocoding request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	var geoResp geocodingResponse
+	if err := json.NewDecoder(resp.Body).Decode(&geoResp); err != nil {
+		return nil, fmt.Errorf("decoding geocoding response: %w", err)
+	}
+	return &geoResp, nil
 }
 
 func formatDayName(dateStr string, now time.Time, index int) string {
