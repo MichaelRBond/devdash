@@ -42,23 +42,25 @@ func DiscoverSkills(panelIndex int) []Skill {
 
 	var skills []Skill
 	for _, entry := range entries {
-		if !entry.IsDir() {
-			continue
-		}
 		name := entry.Name()
 		if !strings.HasPrefix(name, prefix+"-") {
 			continue
 		}
+		// Use os.Stat (not entry.IsDir) so symlinks to skill dirs are followed.
+		skillPath := filepath.Join(skillsDir, name)
+		info, err := os.Stat(skillPath)
+		if err != nil || !info.IsDir() {
+			continue
+		}
 		// Check that SKILL.md exists in the directory.
-		skillFile := filepath.Join(skillsDir, name, "SKILL.md")
-		if _, err := os.Stat(skillFile); err != nil {
+		if _, err := os.Stat(filepath.Join(skillPath, "SKILL.md")); err != nil {
 			continue
 		}
 		displayName := strings.TrimPrefix(name, prefix+"-")
 		skills = append(skills, Skill{
 			Name:        name,
 			DisplayName: displayName,
-			Path:        filepath.Join(skillsDir, name),
+			Path:        skillPath,
 		})
 	}
 
