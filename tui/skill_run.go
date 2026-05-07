@@ -11,7 +11,11 @@ import (
 
 // RunSkill writes metadata to a temp JSON file and launches claude in zellij.
 // If floating is true, opens in a floating pane; otherwise opens in a new tab.
-func RunSkill(skill Skill, metadata map[string]any, floating bool) error {
+// model is the alias passed to `claude --model` (e.g. "opus", "sonnet", "haiku");
+// empty string omits the flag and uses the user's configured default.
+// effort is the value passed to `claude --effort` (e.g. "low", "medium", "high",
+// "xhigh", "max"); empty string omits the flag.
+func RunSkill(skill Skill, metadata map[string]any, floating bool, model, effort string) error {
 	// Write metadata JSON to temp file.
 	filename := fmt.Sprintf("/tmp/devdash-skill-%d.json", time.Now().UnixNano())
 	data, err := json.MarshalIndent(metadata, "", "  ")
@@ -25,10 +29,19 @@ func RunSkill(skill Skill, metadata map[string]any, floating bool) error {
 	// Resolve the working directory based on panel type.
 	workDir := resolveWorkDir(metadata)
 
+	flags := ""
+	if model != "" {
+		flags += fmt.Sprintf("--model %s ", shellQuote(model))
+	}
+	if effort != "" {
+		flags += fmt.Sprintf("--effort %s ", shellQuote(effort))
+	}
+
 	// Build the shell command: cd to repo, then run claude.
 	claudeCmd := fmt.Sprintf(
-		"DEVDASH_CONTEXT=%s claude --append-system-prompt 'Context file available at %s — read it for metadata about the selected item.' 'Read %s and run /%s'",
+		"DEVDASH_CONTEXT=%s claude %s--append-system-prompt 'Context file available at %s — read it for metadata about the selected item.' 'Read %s and run /%s'",
 		shellQuote(filename),
+		flags,
 		filename,
 		filename,
 		skill.Name,

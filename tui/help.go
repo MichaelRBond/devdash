@@ -18,6 +18,8 @@ var helpEntries = []helpEntry{
 	{"Enter", "Open selected item in browser"},
 	{"d", "Toggle draft PRs (PR panels)"},
 	{"s", "Open skill menu for focused panel"},
+	{"←/→ (skill menu)", "Pick model: default, opus, sonnet, haiku"},
+	{"e (skill menu)", "Cycle effort: low, medium, high, xhigh, max"},
 	{"r", "Refresh all panels"},
 	{"R", "Refresh focused panel only"},
 	{"1-5", "Jump to panel by number"},

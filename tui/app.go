@@ -220,11 +220,13 @@ func (a App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		// Skill menu captures all keys when visible.
 		if a.skillMenu.IsVisible() {
 			floating := a.skillMenu.IsFloating()
+			model := a.skillMenu.SelectedModel()
+			effort := a.skillMenu.SelectedEffort()
 			skill, _ := a.skillMenu.HandleKey(msg.String())
 			if skill != nil {
 				metadata := a.selectedMetadata()
 				if metadata != nil {
-					RunSkill(*skill, metadata, floating)
+					RunSkill(*skill, metadata, floating, model, effort)
 				}
 			}
 			return a, nil
